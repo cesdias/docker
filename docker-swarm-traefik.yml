@@ -7,15 +7,15 @@ services:
       - "--api.dashboard=true"
       - "--api.debug=true"
       - "--log.level=DEBUG"
-      #"- --providers.docker=true"
+      #- "--providers.docker=true"
       - "--providers.docker.swarmMode=true"
       - "--providers.docker.exposedbydefault=false"
-      #"- --providers.docker.network=proxy"
+      #- "--providers.docker.network=proxy"
       - "--entrypoints.web.address=:80"
-      #"- --entrypoints.websecure.address=:443"
-      #"- --certificatesresolvers.mytlschallenge.acme.httpChallenge.entrypoint=web"
-      #"- --certificatesresolvers.mytlschallenge.acme.email=me@hacks.pro.br"
-      #"- --certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
+      #- "--entrypoints.websecure.address=:443"
+      #- "--certificatesresolvers.mytlschallenge.acme.httpChallenge.entrypoint=web"
+      #- "--certificatesresolvers.mytlschallenge.acme.email=me@hacks.pro.br"
+      #- "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
     ports:
       - target: 80
         published: 80
