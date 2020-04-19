@@ -1,0 +1,47 @@
+version: "3.7"
+services:
+  proxy:
+    image: "traefik:v2.2"
+    command:
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--api.debug=true"
+      - "--log.level=DEBUG"
+      #"- --providers.docker=true"
+      - "--providers.docker.swarmMode=true"
+      - "--providers.docker.exposedbydefault=false"
+      #"- --providers.docker.network=proxy"
+      - "--entrypoints.web.address=:80"
+      #"- --entrypoints.websecure.address=:443"
+      #"- --certificatesresolvers.mytlschallenge.acme.httpChallenge.entrypoint=web"
+      #"- --certificatesresolvers.mytlschallenge.acme.email=me@hacks.pro.br"
+      #"- --certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - target: 80
+        published: 80
+      #- target: 443
+      #  published: 443
+      - target: 8080
+        published: 8080
+    volumes:
+      #- letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+        - proxy
+    deploy:
+    #  labels:
+    #    - "traefik.enable=true"
+    #    - "traefik.http.routers.api.rule=Host(`sefazpb.hacks.pro.br`)"
+    #    - "traefik.http.routers.api.service=api@internal"
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+
+networks:
+  proxy:
+    external: true
+
+#volumes:
+#  letsencrypt:
