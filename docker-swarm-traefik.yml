@@ -14,7 +14,7 @@ services:
       - "--entrypoints.web.address=:80"
       #- "--entrypoints.websecure.address=:443"
       #- "--certificatesresolvers.mytlschallenge.acme.httpChallenge.entrypoint=web"
-      #- "--certificatesresolvers.mytlschallenge.acme.email=me@hacks.pro.br"
+      #- "--certificatesresolvers.mytlschallenge.acme.email="<your@email.com>"
       #- "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
     ports:
       - target: 80
@@ -31,7 +31,7 @@ services:
     deploy:
     #  labels:
     #    - "traefik.enable=true"
-    #    - "traefik.http.routers.api.rule=Host(`sefazpb.hacks.pro.br`)"
+    #    - "traefik.http.routers.api.rule=Host(`${DOMAIN}`)"
     #    - "traefik.http.routers.api.service=api@internal"
       placement:
         constraints:
