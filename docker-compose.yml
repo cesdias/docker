@@ -40,7 +40,7 @@ services:
           - node.role == worker
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.whoami_http.rule=hostregexp(`${Host:.+}`)"
+        - "traefik.http.routers.whoami_http.rule=hostregexp(`{host:.+}`)"
         - "traefik.http.routers.whoami_http.entrypoints=web"
         - "traefik.http.routers.whoami_http.middlewares=redirect-to-https"
         - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
