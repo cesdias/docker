@@ -1,0 +1,64 @@
+## Pull image from docker hub
+docker pull cesdias/postgres-anon:12
+
+## Running postgres-anon docker instance
+docker run --name pganon -e POSTGRES_PASSWORD=mysecretpassword -d cesdias/postgres-anon:12
+
+## Connecting postgres
+docker exec -it pganon psql -U postgres
+
+
+-- Install extension system-wide
+ALTER SYSTEM SET session_preload_libraries = 'anon';
+SELECT pg_reload_conf();
+
+-- Create test database
+CREATE DATABASE nfe;
+
+-- Connect to database
+\c nfe
+
+-- Create table
+CREATE TABLE IF NOT EXISTS emit (
+  id INT PRIMARY KEY,
+  cnpj VARCHAR,
+  xname VARCHAR,
+  xfant VARCHAR,
+  ie VARCHAR
+);
+
+-- fill table with values
+INSERT INTO emit VALUES (
+  1,
+  '29179539000131',
+  'NUTRIVIDA COMERCIO DE ALIMENTOS NATURAIS LTDA - ME',
+  'BARU - PRODUTOS NATURAIS',
+  '163061750'
+);
+
+-- Install and load the extension on a specific database
+ALTER DATABASE nfe SET session_preload_libraries = 'anon';
+CREATE EXTENSION anon CASCADE;
+SELECT anon.load();
+
+-- Activate the dynamic masking engine
+CREATE EXTENSION IF NOT EXISTS anon CASCADE;
+SELECT anon.start_dynamic_masking();
+
+-- Declare the masked user
+CREATE ROLE poc LOGIN;
+SECURITY LABEL FOR anon ON ROLE poc IS 'MASKED';
+
+-- Declare the masking rules (for cnpj and ie)
+SECURITY LABEL FOR anon ON COLUMN emit.cnpj IS 'MASKED WITH FUNCTION anon.partial(cnpj,2,$$**********$$,2)';
+SECURITY LABEL FOR anon ON COLUMN emit.ie IS 'MASKED WITH FUNCTION anon.partial(ie,2,$$*****$$,2)';
+
+-- Exit postgres console
+exit
+
+
+## Running a query with anonymizer in place on table 'emit' on columns 'cnpj' and 'ie' from database 'nfe' with 'poc' user
+docker exec -it pganon psql nfe -U poc -c 'SELECT * FROM emit;'
+
+## Using normal user postgres (without anonymizer)
+docker exec -it pganon psql nfe -U postgres -c 'SELECT * FROM emit;'

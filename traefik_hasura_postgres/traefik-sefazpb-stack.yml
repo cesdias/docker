@@ -1,14 +1,20 @@
 version: "3.7"
 services:
   proxy:
-    image: "traefik:2.2"
+    image: "traefik:2.2.1"
     command:
-      - "--api.debug=true"
-      - "--log.level=DEBUG"
+      #- "--api=true"
+      #- "--api.debug=true"
+      - "--api.dashboard=true"
+      #- "--log.level=DEBUG"
+      - "--accesslog=true"
+      - "--accesslog.bufferingsize=100"
       - "--providers.docker.swarmMode=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.forwardedheaders.insecure"
       - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.forwardedheaders.insecure"
       - "--certificatesResolvers.le.acme.email=me@hacks.pro.br"
       - "--certificatesResolvers.le.acme.storage=/acme/acme.json"
       - "--certificatesResolvers.le.acme.tlschallenge=true"
@@ -25,10 +31,23 @@ services:
         constraints:
           - node.role == manager
       labels:
+        # Enabling Traefik
         - "traefik.enable=true"
+        # HTTP redirect to HTTPS
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+        - "traefik.http.routers.graphql-engine-http.rule=hostregexp(`{host:.+}`)"
+        - "traefik.http.routers.graphql-engine-http.entrypoints=web"
+        - "traefik.http.routers.graphql-engine-http.middlewares=redirect-to-https"
+        # Enabling /api and /dashboard
+        - "traefik.http.routers.api.rule=Host(`sefazpb.hacks.pro.br`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+        - "traefik.http.routers.api.service=api@internal"
+        - "traefik.http.routers.api.middlewares=auth"
+        - "traefik.http.middlewares.auth.basicauth.users=traefik:$$apr1$$4KhdabMu$$vZpyhYHjpIgaKqMj6Iyu40"
+        # Dummy service for Swarm port detection. The port can be any valid integer value.
+        - "traefik.http.services.dummy-svc.loadbalancer.server.port=9999"
 
   graphql-engine:
-    image: "hasura/graphql-engine:v1.1.1"
+    image: "hasura/graphql-engine:v1.2.1"
     depends_on:
       - "postgres"
     environment:
@@ -37,23 +56,18 @@ services:
       HASURA_GRAPHQL_ENABLED_LOG_TYPES: "startup, http-log, webhook-log, websocket-log, query-log"
       HASURA_GRAPHQL_ADMIN_SECRET: "IeBee7ae"
     deploy:
-      replicas: 1
+      replicas: 3
       placement:
         constraints:
           - node.role == worker
       labels:
+        # Enabling Traefik
         - "traefik.enable=true"
-
-        - "traefik.http.routers.graphql-engine-http.rule=hostregexp(`{host:.+}`)"
-        - "traefik.http.routers.graphql-engine-http.entrypoints=web"
-        - "traefik.http.routers.graphql-engine-http.middlewares=redirect-to-https"
-        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-
+        # Routing to Hasura GraphQL Engine Service
         - "traefik.http.routers.graphql-engine.rule=Host(`sefazpb.hacks.pro.br`)"
         - "traefik.http.routers.graphql-engine.entrypoints=websecure"
         - "traefik.http.routers.graphql-engine.tls=true"
         - "traefik.http.routers.graphql-engine.tls.certresolver=le"
-
         - "traefik.http.services.graphql-engine.loadbalancer.server.port=8080"
 
   postgres:
@@ -66,8 +80,6 @@ services:
       placement:
         constraints:
           - node.role == manager
-      labels:
-        - "traefik.enable=true"
 
 volumes:
   acme:

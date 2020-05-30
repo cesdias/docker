@@ -1,0 +1,67 @@
+version: "3.7"
+
+services:
+  caddy:
+    image: lucaslorentz/caddy-docker-proxy:alpine
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - caddy
+    command: -email carlos@hacks.pro.br -agree=true -log stdout
+    volumes:
+      - acme:/root/.caddy
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        reservations:
+          cpus: '0.1'
+          memory: 200M
+
+  graphql-engine:
+    image: hasura/graphql-engine:v1.1.1
+    networks:
+      - caddy
+    depends_on:
+      - postgres
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: "postgres://postgres:Aiveid7n@postgres:5432/postgres"
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: "startup, http-log, webhook-log, websocket-log, query-log"
+      HASURA_GRAPHQL_ADMIN_SECRET: "IeBee7ae"
+    deploy:
+      replicas: 3
+      placement:
+        constraints:
+          - node.role == worker
+      labels:
+          - "caddy.address=sefazpb.hacks.pro.br"
+          - "caddy.targetport=8080"
+          - "caddy.targetprotocol=http"
+
+  postgres:
+    image: postgres:12
+    networks:
+      - caddy
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: Aiveid7n
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+
+volumes:
+  acme:
+  pgdata:
+
+networks:
+  caddy:
+    driver: overlay
